@@ -27,7 +27,7 @@ This project is a smart, content-based recommendation system designed for SHL's 
 ## 🛠️ Installation
 1. **Clone this repository**
 ```bash
-git clone https://github.com/yourusername/shl-recommendation-engine.git
+git clone https://github.com/nonehxrry/shl-recommendation-engine.git
 cd shl-recommendation-engine
 ```
 
