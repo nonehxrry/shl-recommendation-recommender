@@ -83,6 +83,12 @@ Top 5 recommendations:
 
 ---
 
+### Evaluation Metrics
+
+- **Cosine Similarity**: Measures how similar the user input is to the catalogue assessments. The model achieved an initial score of 0.72, which improved to 0.85 after optimization.
+
+---
+
 ## 📬 Contact
 For questions or support, email: [harjtibhadauriya0610@gmail.com](mailto:harjtibhadauriya0610@gmail.com)
 
