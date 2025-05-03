@@ -142,38 +142,41 @@ def apply_custom_styles():
 @st.cache_data(show_spinner="Loading catalog data...")
 def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
     """
-    Load and validate the product catalog.
-    
-    Args:
-        file_path: Path to the catalog CSV file
-        
-    Returns:
-        pandas.DataFrame: Loaded catalog data
-        
-    Raises:
-        ValueError: If required columns are missing
+    Load and validate the product catalog with fallback to sample data.
     """
     try:
+        # Create data directory if it doesn't exist
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        if not os.path.exists(file_path):
+            # Create sample data if file doesn't exist
+            st.warning("Default catalog not found - using sample data. Please upload your catalog.")
+            sample_data = {
+                'assessment_name': ['Communication Skills', 'Leadership Assessment'],
+                'description': ['Measures verbal and written communication', 'Evaluates leadership potential'],
+                'skills_measured': ['Verbal communication, Writing', 'Decision making, Team management'],
+                'job_roles': ['All roles', 'Managerial roles'],
+                'duration_minutes': [30, 45],
+                'assessment_id': [101, 102]
+            }
+            df = pd.DataFrame(sample_data)
+            # Save the sample data for future use
+            df.to_csv(file_path, index=False)
+            return df
+            
         df = pd.read_csv(file_path)
         
-        # Validate required columns
+        # Rest of your validation logic...
         required_cols = [
-            'assessment_name', 
-            'description', 
-            'skills_measured', 
-            'job_roles', 
-            'duration_minutes', 
-            'assessment_id'
+            'assessment_name', 'description', 'skills_measured',
+            'job_roles', 'duration_minutes', 'assessment_id'
         ]
         
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
             
-        # Clean data
         df.fillna('', inplace=True)
-        
-        # Create searchable text blob
         df['text_blob'] = (
             df['assessment_name'] + ". " + 
             df['description'] + ". " + 
@@ -193,9 +196,6 @@ def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
 def handle_file_upload() -> Optional[str]:
     """
     Handle catalog file upload from user.
-    
-    Returns:
-        str or None: Path to temporary file if uploaded, None otherwise
     """
     st.sidebar.markdown("## 📁 Upload Custom Catalog")
     uploaded_file = st.sidebar.file_uploader(
@@ -210,6 +210,9 @@ def handle_file_upload() -> Optional[str]:
             st.sidebar.error(f"File too large. Max size: {MAX_FILE_SIZE_MB}MB")
             return None
             
+        # Ensure data directory exists
+        os.makedirs("data", exist_ok=True)
+            
         # Save to temp file
         temp_path = os.path.join("data", "temp_catalog.csv")
         with open(temp_path, "wb") as f:
@@ -219,7 +222,6 @@ def handle_file_upload() -> Optional[str]:
         return temp_path
         
     return None
-
 # ------------------------------
 # Recommendation Display
 # ------------------------------
@@ -259,6 +261,9 @@ def display_recommendations(recommendations: List[Dict], query: str):
 # ------------------------------
 def main():
     """Main application function."""
+    """Main application function."""
+    # Ensure data directory exists
+    os.makedirs("data", exist_ok=True)
     configure_page()
     apply_custom_styles()
     
