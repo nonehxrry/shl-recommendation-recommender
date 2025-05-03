@@ -24,7 +24,6 @@ def configure_page():
 
 import sys
 from pathlib import Path
-from typing import Optional
 sys.path.append(str(Path(__file__).parent))
 
 # Standard library imports
@@ -36,6 +35,7 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from typing import Optional, List, Dict
 
 # Local imports
 try:
@@ -241,7 +241,7 @@ def handle_file_upload() -> Optional[str]:
 # ------------------------------
 # Recommendation Display
 # ------------------------------
-def display_recommendations(recommendations: List[Dict], query: str):
+def display_recommendations(recommendations: list[Dict], query: str):
     """
     Display recommendations in an attractive format.
     
