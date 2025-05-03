@@ -20,13 +20,9 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 # Local imports
 try:
-    from recommend import get_top_k
+    from .recommend import get_top_k
 except ImportError as e:
-    st.error("""
-    ❌ Critical Error: Failed to import recommendation module.
-    Please ensure all dependencies are installed correctly.
-    """)
-    st.stop()
+    from recommend import get_top_k
 
 # ------------------------------
 # Constants & Configuration
