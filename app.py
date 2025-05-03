@@ -24,6 +24,7 @@ def configure_page():
 
 import sys
 from pathlib import Path
+from typing import Optional
 sys.path.append(str(Path(__file__).parent))
 
 # Standard library imports
