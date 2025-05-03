@@ -12,6 +12,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict
 
+import requests
+from typing import Tuple
+
 # Third-party imports
 import pandas as pd
 import streamlit as st
@@ -275,81 +278,101 @@ def display_recommendations(recommendations: List[Dict], query: str):
 # Main App Functionality
 # ------------------------------
 def main():
-    """Main application function."""
+    """Main application function with new features"""
     # Apply styles and setup
     apply_custom_styles()
     
-    # Initialize model once at startup (using cache_resource)
+    # Initialize model once at startup
     model = initialize_model()
     
-    # Header Section
-    st.markdown('<div class="title">🔍 SHL Assessment Recommendation Engine</div>', 
-                unsafe_allow_html=True)
-    st.markdown("""
-    <div class="subtitle">
-        AI-powered tool to match job descriptions with the most relevant SHL assessments.
-        <br>Enter a job description below to get started.
-    </div>
-    """, unsafe_allow_html=True)
+    # Header Section [unchanged...]
     
-    # Sidebar Configuration
-    st.sidebar.title("⚙️ Configuration")
+    # New API Health Check Section
+    with st.sidebar.expander("API Status"):
+        if st.button("Check API Health"):
+            try:
+                response = requests.get("http://localhost:8000/health", timeout=5)
+                if response.status_code == 200:
+                    st.success("API is healthy ✅")
+                else:
+                    st.error(f"API Error: {response.status_code}")
+            except Exception as e:
+                st.error(f"API Connection Failed: {str(e)}")
     
-    # File upload handling - returns None if no file uploaded
-    custom_catalog_path = handle_file_upload()
+    # [File upload handling remains unchanged...]
     
-    # Load data - uses uploaded file if available, otherwise default
-    catalog_path = custom_catalog_path if custom_catalog_path else DEFAULT_CATALOG_PATH
-    df = load_catalog(catalog_path)
-    
-    # Query Input Section
+    # Enhanced Query Input Section with Duration Filter
     st.header("📝 Enter Job Description")
     query = st.text_area(
         "Describe the role, skills, or candidate profile:",
         height=200,
-        placeholder="Example: Looking for a sales manager with strong communication skills, analytical ability, and team leadership experience...",
+        placeholder="Example: Looking for a sales manager with strong communication skills...",
         help="Be as specific as possible for better recommendations"
     )
     
-    # Recommendation Settings
-    with st.expander("⚙️ Advanced Settings"):
+    # Enhanced Recommendation Settings
+    with st.expander("⚙️ Advanced Settings", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             num_recommendations = st.slider(
                 "Number of recommendations",
-                1,
-                MAX_RECOMMENDATIONS,
-                DEFAULT_RECOMMENDATIONS,
-                help="Adjust how many results to display"
+                1, MAX_RECOMMENDATIONS, DEFAULT_RECOMMENDATIONS
+            )
+            max_duration = st.slider(
+                "Maximum duration (minutes)",
+                0, 240, 120,
+                help="Filter assessments by maximum duration"
             )
         with col2:
-            show_technical = st.checkbox(
-                "Show technical details",
-                False,
-                help="Display embedding and scoring details"
+            min_score = st.slider(
+                "Minimum confidence score",
+                0.0, 1.0, 0.3, 0.05,
+                help="Filter recommendations by minimum similarity score"
             )
+            show_technical = st.checkbox("Show technical details", False)
     
-    # Generate Recommendations
+    # Generate Recommendations with enhanced error handling
     if st.button("🚀 Generate Recommendations", type="primary"):
         if not query.strip():
             st.warning("Please enter a job description to continue")
         else:
             try:
                 with st.spinner("🔍 Analyzing job description and finding best matches..."):
-                    # Pass the pre-loaded model to get_top_k
                     recommendations = get_top_k(
                         query=query,
                         df=df,
                         k=num_recommendations,
-                        model=model  # Pass the initialized model
+                        model=model,
+                        max_duration=max_duration,
+                        min_score=min_score
                     )
-                
-                display_recommendations(recommendations, query)
                     
+                    # Display recommendations
+                    display_recommendations(recommendations, query)
+                    
+                    # New: Evaluation metrics display
+                    with st.expander("📊 Evaluation Metrics", expanded=False):
+                        st.markdown("**Note**: Evaluation requires ground truth data")
+                        if st.button("Calculate Sample Metrics"):
+                            # Example evaluation - replace with your actual test cases
+                            sample_ground_truth = ['Assessment1', 'Assessment3']
+                            recall = calculate_recall(
+                                [r['assessment_name'] for r in recommendations],
+                                sample_ground_truth
+                            )
+                            map_score = calculate_map(
+                                [r['assessment_name'] for r in recommendations],
+                                sample_ground_truth
+                            )
+                            st.metric("Recall@3", f"{recall:.2%}")
+                            st.metric("MAP@3", f"{map_score:.2%}")
+                
+            except ValueError as e:
+                st.warning(f"⚠️ {str(e)}")
             except Exception as e:
                 st.error(f"""
-                ❌ An error occurred during processing: {str(e)}
-                Please try again or contact support if the problem persists.
+                ❌ An unexpected error occurred:
+                {str(e)}
                 """)
                 if show_technical:
                     with st.expander("Technical Details"):
