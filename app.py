@@ -26,7 +26,8 @@ except ImportError as e:
 # ------------------------------
 # Constants & Configuration
 # ------------------------------
-DEFAULT_CATALOG_PATH = os.path.join(os.path.dirname(__file__), "data", "catalogue.csv")
+DATA_DIR = "data"
+DEFAULT_CATALOG_PATH = os.path.join(DATA_DIR, "catalog.csv")  # Changed from catalogue.csv to catalog.csv
 MAX_FILE_SIZE_MB = 5
 ALLOWED_FILE_TYPES = ["csv"]
 DEFAULT_RECOMMENDATIONS = 5
@@ -137,12 +138,14 @@ def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
     Load and validate the product catalog with fallback to sample data.
     """
     try:
-        # Create data directory if it doesn't exist
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        # Ensure data directory exists
+        os.makedirs(DATA_DIR, exist_ok=True)
         
+        # Check if file exists
         if not os.path.exists(file_path):
-            # Create sample data if file doesn't exist
-            st.warning("Default catalog not found - using sample data. Please upload your catalog.")
+            st.warning(f"Catalog not found at {file_path} - using sample data. Please upload your catalog.")
+            
+            # Create sample data
             sample_data = {
                 'assessment_name': ['Communication Skills', 'Leadership Assessment'],
                 'description': ['Measures verbal and written communication', 'Evaluates leadership potential'],
@@ -152,13 +155,20 @@ def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
                 'assessment_id': [101, 102]
             }
             df = pd.DataFrame(sample_data)
-            # Save the sample data for future use
-            df.to_csv(file_path, index=False)
+            
+            # Try to save sample data for future use
+            try:
+                df.to_csv(file_path, index=False)
+                st.info(f"Created sample catalog at {file_path}")
+            except Exception as save_error:
+                st.warning(f"Couldn't save sample catalog: {save_error}")
+            
             return df
             
+        # Load existing catalog
         df = pd.read_csv(file_path)
         
-        # Rest of your validation logic...
+        # Validate required columns
         required_cols = [
             'assessment_name', 'description', 'skills_measured',
             'job_roles', 'duration_minutes', 'assessment_id'
@@ -168,6 +178,7 @@ def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
         if missing_cols:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
             
+        # Clean data
         df.fillna('', inplace=True)
         df['text_blob'] = (
             df['assessment_name'] + ". " + 
@@ -180,6 +191,9 @@ def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
         
     except Exception as e:
         st.error(f"❌ Failed to load catalog: {str(e)}")
+        st.error(f"Please ensure you have a valid 'catalog.csv' file in the 'data' directory.")
+        st.error(f"Current working directory: {os.getcwd()}")
+        st.error(f"Looking for catalog at: {os.path.abspath(file_path)}")
         st.stop()
 
 # ------------------------------
@@ -188,31 +202,38 @@ def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
 def handle_file_upload() -> Optional[str]:
     """
     Handle catalog file upload from user.
+    Returns path to uploaded file if successful, None otherwise.
     """
     st.sidebar.markdown("## 📁 Upload Custom Catalog")
-    uploaded_file = st.sidebar.file_uploader(
-        "Upload CSV (max 5MB)",
-        type=ALLOWED_FILE_TYPES,
-        accept_multiple_files=False,
-        help="Upload a custom SHL catalog CSV file"
-    )
     
-    if uploaded_file is not None:
-        if uploaded_file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
-            st.sidebar.error(f"File too large. Max size: {MAX_FILE_SIZE_MB}MB")
-            return None
-            
-        # Ensure data directory exists
-        os.makedirs("data", exist_ok=True)
-            
-        # Save to temp file
-        temp_path = os.path.join("data", "temp_catalog.csv")
-        with open(temp_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-            
-        st.sidebar.success("File uploaded successfully!")
-        return temp_path
+    with st.sidebar:
+        uploaded_file = st.file_uploader(
+            "Upload CSV (max 5MB)",
+            type=ALLOWED_FILE_TYPES,
+            accept_multiple_files=False,
+            help="Upload a custom SHL catalog CSV file"
+        )
         
+        if uploaded_file is not None:
+            # Validate file size
+            if uploaded_file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
+                st.error(f"File too large. Max size: {MAX_FILE_SIZE_MB}MB")
+                return None
+                
+            # Ensure data directory exists
+            os.makedirs(DATA_DIR, exist_ok=True)
+                
+            # Save to data directory
+            upload_path = os.path.join(DATA_DIR, "uploaded_catalog.csv")
+            try:
+                with open(upload_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                st.success("File uploaded successfully!")
+                return upload_path
+            except Exception as e:
+                st.error(f"Failed to save uploaded file: {e}")
+                return None
+                
     return None
 
 # ------------------------------
@@ -221,11 +242,11 @@ def handle_file_upload() -> Optional[str]:
 def display_recommendations(recommendations: List[Dict], query: str):
     """
     Display recommendations in an attractive format.
-    
-    Args:
-        recommendations: List of recommendation dictionaries
-        query: Original user query
     """
+    if not recommendations:
+        st.warning("No recommendations found. Try broadening your search criteria.")
+        return
+        
     st.success(f"✅ Found {len(recommendations)} recommendations for: '{query}'")
     st.markdown("---")
     
@@ -237,7 +258,7 @@ def display_recommendations(recommendations: List[Dict], query: str):
                 <p><strong>🔍 Match Score:</strong> {rec.get('score', 0):.2f}/1.00</p>
                 <p><strong>📝 Description:</strong> {rec['description']}</p>
                 <p><strong>⏱ Duration:</strong> {rec['duration']} minutes</p>
-                <p><strong>🔗</strong> <a href="{rec['url']}" target="_blank">View Assessment Details</a></p>
+                <p><strong>🔗</strong> <a href="{rec.get('url', '#')}" target="_blank">View Assessment Details</a></p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -254,8 +275,7 @@ def display_recommendations(recommendations: List[Dict], query: str):
 # ------------------------------
 def main():
     """Main application function."""
-    # Ensure data directory exists
-    os.makedirs("data", exist_ok=True)
+    # Apply styles and setup
     apply_custom_styles()
     
     # Header Section
@@ -271,16 +291,12 @@ def main():
     # Sidebar Configuration
     st.sidebar.title("⚙️ Configuration")
     
-    # File upload handling
+    # File upload handling - returns None if no file uploaded
     custom_catalog_path = handle_file_upload()
-    catalog_path = custom_catalog_path if custom_catalog_path else DEFAULT_CATALOG_PATH
     
-    # Load data
-    try:
-        df = load_catalog(catalog_path)
-    except Exception as e:
-        st.error(f"Data loading error: {str(e)}")
-        st.stop()
+    # Load data - uses uploaded file if available, otherwise default
+    catalog_path = custom_catalog_path if custom_catalog_path else DEFAULT_CATALOG_PATH
+    df = load_catalog(catalog_path)
     
     # Query Input Section
     st.header("📝 Enter Job Description")
@@ -316,12 +332,9 @@ def main():
         else:
             try:
                 with st.spinner("🔍 Analyzing job description and finding best matches..."):
-                    recommendations = get_top_k(query, k=num_recommendations)
+                    recommendations = get_top_k(query, df, k=num_recommendations)
                 
-                if not recommendations:
-                    st.warning("No matching assessments found. Try broadening your search.")
-                else:
-                    display_recommendations(recommendations, query)
+                display_recommendations(recommendations, query)
                     
             except Exception as e:
                 st.error("""
@@ -341,4 +354,6 @@ def main():
     """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
+    # Ensure data directory exists before starting
+    os.makedirs(DATA_DIR, exist_ok=True)
     main()
