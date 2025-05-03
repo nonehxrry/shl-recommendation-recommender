@@ -1,0 +1,11 @@
+assessment_id,assessment_name,description,skills_measured,job_roles,difficulty_level,duration_minutes
+A001,Leadership Assessment,Measures leadership and decision-making capabilities,leadership;decision-making;team management,Manager;Team Lead,Intermediate,30
+A002,Coding Test,Assesses basic programming skills in multiple languages,programming;data structures;algorithms,Software Engineer;Intern,Beginner,45
+A003,Soft Skills Test,Evaluates communication, teamwork, and adaptability,communication;teamwork;adaptability,HR Executive;Customer Support,Beginner,20
+A004,Cognitive Ability Test,Measures problem-solving and logical reasoning,reasoning;logic;problem-solving,Analyst;Data Scientist,Intermediate,35
+A005,Customer Service Assessment,Assesses patience, conflict resolution, and communication,communication;conflict resolution;customer handling,Support Agent;Call Center Rep,Beginner,25
+A006,Sales Potential Assessment,Evaluates persuasion, negotiation, and sales acumen,sales;negotiation;persuasion,Sales Executive;BDM,Intermediate,30
+A007,Project Management Aptitude,Tests project planning, scheduling, and risk management,planning;scheduling;risk analysis,Project Manager;Coordinator,Advanced,40
+A008,Emotional Intelligence Test,Assesses empathy, self-awareness, and social skills,empathy;self-regulation;social intelligence,Team Lead;HR Manager,Intermediate,30
+A009,Data Analysis Assessment,Tests ability to analyze and interpret data,data analysis;statistics;visualization,Data Analyst;BI Developer,Advanced,45
+A010,Technical Support Aptitude,Evaluates troubleshooting, hardware/software knowledge,troubleshooting;IT support;technical knowledge,Tech Support;IT Helpdesk,Beginner,30
