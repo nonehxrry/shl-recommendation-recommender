@@ -53,79 +53,24 @@ st.set_page_config(
 # Custom Styling
 # ------------------------------
 def apply_custom_styles():
-    """Custom styling that preserves your original design with better visibility"""
+    """Only the essential fixes for text visibility"""
     st.markdown("""
     <style>
-        /* MAIN THEME COLORS (unchanged) */
-        :root {
-            --primary-blue: #1f4e79;
-            --secondary-blue: #4b86b4;
-            --accent-blue: #63ace5;
-            --dark-text: #333333;
-            --light-text: #ffffff;
-        }
-
-        /* APP CONTAINER (unchanged) */
-        .stApp {
-            background-color: #f8f9fa;
-        }
-
-        /* SIDEBAR (unchanged gradient) */
-        .sidebar .sidebar-content {
-            background: linear-gradient(180deg, var(--primary-blue), var(--secondary-blue));
-            color: white;
-            padding: 2rem 1rem;
-        }
-
-        /* HEADER STYLES (unchanged) */
-        .title {
-            font-size: 2.5rem;
-            color: var(--primary-blue);
-            margin-bottom: 0.5rem;
-        }
-        .subtitle {
-            color: #555;
-            margin-bottom: 2rem;
-        }
-
-        /* RECOMMENDATION CARDS (improved visibility) */
+        /* ONLY THE ABSOLUTELY NECESSARY FIXES */
+        /* Make sure text is visible in recommendation cards */
         .recommendation-card {
             background-color: white;
-            border-left: 4px solid var(--accent-blue);
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            border-radius: 0 8px 8px 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            color: black;
         }
-        .recommendation-card h3 {
-            color: var(--primary-blue);
-            margin-top: 0;
-        }
-        .recommendation-card p {
-            color: var(--dark-text);
-            margin: 0.5rem 0;
-        }
-
-        /* FORM ELEMENTS (unchanged but ensured visibility) */
+        
+        /* Ensure text areas have visible text */
         .stTextArea textarea {
-            color: var(--dark-text);
+            color: black;
         }
-        .stButton>button {
-            background-color: var(--accent-blue);
-            color: white;
-        }
-
-        /* UPLOAD COMPONENT (unchanged styling) */
-        .stFileUploader {
-            border: 1px dashed #ccc;
-            border-radius: 4px;
-            padding: 1rem;
-        }
-
-        /* FOOTER (unchanged) */
-        footer {
-            background-color: var(--primary-blue);
-            color: white;
+        
+        /* Make sure form labels are visible */
+        .stTextArea label, .stSlider label, .stCheckbox label {
+            color: black;
         }
     </style>
     """, unsafe_allow_html=True)
