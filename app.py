@@ -3,6 +3,25 @@
 SHL Assessment Recommendation Engine
 Streamlit Web Application
 """
+
+# ------------------------------
+# Initial Configuration (MUST BE FIRST)
+# ------------------------------
+def configure_page():
+    """Set up Streamlit page configuration."""
+    st.set_page_config(
+        page_title="SHL Assessment Recommendation Engine",
+        page_icon="🧠",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            'Get Help': 'https://shl.com/support',
+            'Report a bug': "https://shl.com/bug-report",
+            'About': "### SHL AI Recommendation Engine v2.1"
+        }
+    )
+
+
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
