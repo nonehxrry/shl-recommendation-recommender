@@ -10,6 +10,12 @@ from datetime import datetime
 # ------------------------------
 # Page Setup
 # ------------------------------
+def load_data():
+    # Loading SHL Product Catalogue CSV
+    return pd.read_csv("data/catalogue.csv")
+
+shl_catalogue = load_data()
+
 st.set_page_config(
     page_title="SHL Assessment Recommendation Engine",
     page_icon="🧠",
@@ -110,4 +116,5 @@ if st.button("🚀 Generate Recommendations"):
 # ------------------------------
 st.markdown("<br><hr>", unsafe_allow_html=True)
 st.markdown("© 2025 SHL Intern Project | Built by Harjit Singh Bhadauriya")
+
 
