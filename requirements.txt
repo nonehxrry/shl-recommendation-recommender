@@ -6,6 +6,7 @@ streamlit==1.33.0
 sentence-transformers==2.2.2
 torch==2.2.2
 transformers==4.40.0
+huggingface-hub==0.15.1  # Added this line
 
 # Data Processing
 pandas==2.2.2
