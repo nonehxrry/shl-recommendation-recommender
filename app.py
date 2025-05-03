@@ -4,38 +4,18 @@ SHL Assessment Recommendation Engine
 Streamlit Web Application
 """
 
-# ------------------------------
-# Initial Configuration (MUST BE FIRST)
-# ------------------------------
-def configure_page():
-    """Set up Streamlit page configuration."""
-    st.set_page_config(
-        page_title="SHL Assessment Recommendation Engine",
-        page_icon="🧠",
-        layout="wide",
-        initial_sidebar_state="expanded",
-        menu_items={
-            'Get Help': 'https://shl.com/support',
-            'Report a bug': "https://shl.com/bug-report",
-            'About': "### SHL AI Recommendation Engine v2.1"
-        }
-    )
-
-
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent))
-
 # Standard library imports
 import os
+import sys
 import traceback
 from datetime import datetime
+from pathlib import Path
+from typing import Optional, List, Dict
 
 # Third-party imports
 import pandas as pd
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
-from typing import Optional, List, Dict
 
 # Local imports
 try:
@@ -43,11 +23,9 @@ try:
 except ImportError as e:
     from recommend import get_top_k
 
-
 # ------------------------------
 # Constants & Configuration
 # ------------------------------
-import os
 DEFAULT_CATALOG_PATH = os.path.join(os.path.dirname(__file__), "data", "catalogue.csv")
 MAX_FILE_SIZE_MB = 5
 ALLOWED_FILE_TYPES = ["csv"]
@@ -55,21 +33,19 @@ DEFAULT_RECOMMENDATIONS = 5
 MAX_RECOMMENDATIONS = 20
 
 # ------------------------------
-# Page Configuration
+# Initial Configuration (MUST BE FIRST STREAMLIT COMMAND)
 # ------------------------------
-def configure_page():
-    """Set up Streamlit page configuration."""
-    st.set_page_config(
-        page_title="SHL Assessment Recommendation Engine",
-        page_icon="🧠",
-        layout="wide",
-        initial_sidebar_state="expanded",
-        menu_items={
-            'Get Help': 'https://shl.com/support',
-            'Report a bug': "https://shl.com/bug-report",
-            'About': "### SHL AI Recommendation Engine v2.1"
-        }
-    )
+st.set_page_config(
+    page_title="SHL Assessment Recommendation Engine",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://shl.com/support',
+        'Report a bug': "https://shl.com/bug-report",
+        'About': "### SHL AI Recommendation Engine v2.1"
+    }
+)
 
 # ------------------------------
 # Custom Styling
@@ -238,10 +214,11 @@ def handle_file_upload() -> Optional[str]:
         return temp_path
         
     return None
+
 # ------------------------------
 # Recommendation Display
 # ------------------------------
-def display_recommendations(recommendations: list[Dict], query: str):
+def display_recommendations(recommendations: List[Dict], query: str):
     """
     Display recommendations in an attractive format.
     
@@ -277,10 +254,8 @@ def display_recommendations(recommendations: list[Dict], query: str):
 # ------------------------------
 def main():
     """Main application function."""
-    """Main application function."""
     # Ensure data directory exists
     os.makedirs("data", exist_ok=True)
-    configure_page()
     apply_custom_styles()
     
     # Header Section
