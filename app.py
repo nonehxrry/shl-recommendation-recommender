@@ -53,47 +53,24 @@ st.set_page_config(
 # Custom Styling
 # ------------------------------
 def apply_custom_styles():
-    """Inject custom CSS styles."""
+    """Inject custom CSS styles with improved contrast for recommendations."""
     st.markdown("""
     <style>
+        /* Base styles */
         :root {
             --primary-color: #1f4e79;
             --secondary-color: #4b86b4;
             --accent-color: #63ace5;
+            --dark-text: #333333;
+            --light-text: #ffffff;
         }
         
-        .reportview-container {
-            background-color: #f8f9fa;
+        /* Main background */
+        .stApp {
+            background-color: #f5f5f5;
         }
         
-        .sidebar .sidebar-content {
-            background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 2rem 1rem;
-        }
-        
-        .sidebar .sidebar-content .stMarkdown h1 {
-            color: white;
-        }
-        
-        .main .block-container {
-            padding: 3rem 1rem 10rem;
-            max-width: 1200px;
-        }
-        
-        .title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-        }
-        
-        .subtitle {
-            font-size: 1.1rem;
-            color: #555;
-            margin-bottom: 2rem;
-        }
-        
+        /* Recommendation cards - now with dark text on light background */
         .recommendation-card {
             border-left: 4px solid var(--accent-color);
             padding: 1.5rem;
@@ -101,31 +78,42 @@ def apply_custom_styles():
             background-color: white;
             border-radius: 0 8px 8px 0;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            color: var(--dark-text) !important;  /* Force dark text */
         }
         
-        .stButton>button {
-            background-color: var(--accent-color);
-            color: white;
-            font-weight: 600;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            border: none;
-            transition: all 0.3s ease;
+        .recommendation-card h3 {
+            color: var(--primary-color) !important;
+            margin-top: 0;
         }
         
-        .stButton>button:hover {
-            background-color: var(--secondary-color);
-            transform: translateY(-2px);
+        .recommendation-card a {
+            color: var(--accent-color) !important;
         }
         
+        /* Checkbox styling */
+        .stCheckbox label {
+            color: var(--dark-text) !important;
+        }
+        
+        /* Footer styling */
         footer {
             position: fixed;
             bottom: 0;
             width: 100%;
             background-color: var(--primary-color);
-            color: white;
+            color: var(--light-text);
             padding: 1rem;
             text-align: center;
+        }
+        
+        /* Force all text in main content to be dark */
+        .main .block-container {
+            color: var(--dark-text);
+        }
+        
+        /* Make sure form elements are visible */
+        .stTextArea, .stSlider, .stCheckbox {
+            color: var(--dark-text);
         }
     </style>
     """, unsafe_allow_html=True)
