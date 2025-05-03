@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # ------------------------------
 # Data Loading & Validation
 # ------------------------------
-def load_and_validate_data(file_path: str = 'data/catalogue.csv') -> pd.DataFrame:
+def load_and_validate_data(file_path: str = 'data/catalog.csv') -> pd.DataFrame:
     """
     Load and validate the product catalog with comprehensive checks.
     
@@ -103,12 +103,6 @@ def load_and_validate_data(file_path: str = 'data/catalogue.csv') -> pd.DataFram
             "Job Roles: " + df['job_roles']
         )
         
-        # Add metadata
-        df['metadata'] = df.apply(lambda row: {
-            'duration': row['duration_minutes'],
-            'id': str(row['assessment_id'])
-        }, axis=1)
-        
         logger.info(f"Successfully loaded catalog with {len(df)} assessments")
         return df
         
@@ -155,168 +149,109 @@ def initialize_model(model_name: str = MODEL_NAME) -> SentenceTransformer:
         raise RuntimeError("Failed to initialize recommendation model")
 
 # ------------------------------
+# Core Recommendation Function
+# ------------------------------
+def get_top_k(
+    query: str,
+    df: pd.DataFrame,
+    k: int = DEFAULT_K,
+    model: Optional[SentenceTransformer] = None,
+    embeddings: Optional[torch.Tensor] = None
+) -> List[Dict]:
+    """
+    Get top-k recommendations for a user query.
+    
+    Args:
+        query: Input job description text
+        df: Catalog dataframe
+        k: Number of recommendations to return
+        model: Optional pre-initialized model
+        embeddings: Optional pre-computed embeddings
+        
+    Returns:
+        List of recommendation dictionaries
+    """
+    try:
+        # Validate inputs
+        if not query or len(query.strip()) < MIN_QUERY_LENGTH:
+            raise ValueError(f"Query must be at least {MIN_QUERY_LENGTH} characters")
+            
+        if k <= 0:
+            raise ValueError("Number of recommendations must be positive")
+
+        # Initialize model if not provided
+        if model is None:
+            model = initialize_model()
+            
+        # Generate embeddings if not provided
+        if embeddings is None:
+            embeddings = generate_embeddings(model, df['text_blob'].tolist())
+
+        # Encode query
+        query_embedding = model.encode(
+            query,
+            convert_to_tensor=True,
+            show_progress_bar=False
+        )
+
+        # Compute cosine similarities
+        cos_scores = util.pytorch_cos_sim(query_embedding, embeddings)[0]
+        
+        # Get top k results
+        top_results = torch.topk(cos_scores, k=k)
+        
+        # Prepare results
+        recommendations = []
+        for score, idx in zip(top_results.values, top_results.indices):
+            row = df.iloc[idx]
+            recommendations.append({
+                'assessment_name': row['assessment_name'],
+                'description': row['description'],
+                'skills_measured': row['skills_measured'],
+                'job_roles': row['job_roles'],
+                'duration': row['duration_minutes'],
+                'assessment_id': row['assessment_id'],
+                'score': float(score),
+                'url': f"https://platform.shl.com/assessment/{row['assessment_id']}"
+            })
+
+        return recommendations
+
+    except Exception as e:
+        logger.error(f"Recommendation failed: {str(e)}", exc_info=True)
+        raise RuntimeError(f"Failed to generate recommendations: {str(e)}")
+
+# ------------------------------
 # Embedding Generation
 # ------------------------------
 @st.cache_data(show_spinner="Encoding catalog assessments...")
 def generate_embeddings(
-    _model: SentenceTransformer, 
+    model: SentenceTransformer, 
     texts: List[str],
     batch_size: int = 32
 ) -> torch.Tensor:
     """
-    Generate embeddings for catalog items with progress tracking and batching.
+    Generate embeddings for catalog items.
     
     Args:
-        _model: Initialized sentence transformer model
+        model: Initialized sentence transformer model
         texts: List of text items to encode
         batch_size: Number of items to process at once
         
     Returns:
-        torch.Tensor: Matrix of embeddings (num_items x embedding_dim)
+        torch.Tensor: Matrix of embeddings
     """
     try:
-        start_time = time.time()
-        logger.info(f"Generating embeddings for {len(texts)} items")
-        
-        embeddings = _model.encode(
+        return model.encode(
             texts,
             convert_to_tensor=True,
             show_progress_bar=True,
             batch_size=batch_size,
             normalize_embeddings=True
         )
-        
-        logger.info(f"Embeddings generated in {time.time() - start_time:.2f}s")
-        return embeddings
-        
     except Exception as e:
         logger.error(f"Embedding generation failed: {str(e)}", exc_info=True)
-        raise RuntimeError("Failed to generate catalog embeddings")
-
-# ------------------------------
-# Core Recommendation Logic
-# ------------------------------
-def get_top_k(
-    user_query: str,
-    k: int = DEFAULT_K,
-    score_threshold: float = 0.2,
-    diversity: bool = True,
-    _model: Optional[SentenceTransformer] = None,
-    _embeddings: Optional[torch.Tensor] = None,
-    _df: Optional[pd.DataFrame] = None
-) -> List[Dict]:
-    """
-    Get top-k recommendations for a user query with enhanced features.
-    
-    Args:
-        user_query: Input job description or query text
-        k: Number of recommendations to return
-        score_threshold: Minimum similarity score (0-1)
-        diversity: Whether to apply diversity filtering
-        _model: Optional pre-loaded model (for caching)
-        _embeddings: Optional pre-computed embeddings
-        _df: Optional pre-loaded catalog data
-        
-    Returns:
-        List of recommendation dictionaries with scores and metadata
-    """
-    # Validate inputs
-    try:
-        if not user_query or not isinstance(user_query, str):
-            raise ValueError("Query must be a non-empty string")
-            
-        if len(user_query.strip()) < MIN_QUERY_LENGTH:
-            raise ValueError(f"Query too short (min {MIN_QUERY_LENGTH} chars)")
-            
-        if k <= 0:
-            raise ValueError("Number of recommendations must be positive")
-            
-        # Load data if not provided
-        df = _df if _df is not None else load_and_validate_data()
-        
-        # Initialize model if not provided
-        model = _model if _model is not None else initialize_model()
-        
-        # Generate embeddings if not provided
-        embeddings = (_embeddings if _embeddings is not None 
-                     else generate_embeddings(model, df['text_blob'].tolist()))
-        
-        # Encode query
-        start_time = time.time()
-        query_embedding = model.encode(
-            user_query,
-            convert_to_tensor=True,
-            show_progress_bar=False
-        )
-        
-        # Compute similarities (using both pytorch and sklearn for validation)
-        cos_scores_pytorch = util.pytorch_cos_sim(query_embedding, embeddings)[0]
-        cos_scores_sklearn = cosine_similarity(
-            query_embedding.cpu().numpy().reshape(1, -1),
-            embeddings.cpu().numpy()
-        )[0]
-        
-        # Validate consistency between methods
-        if not np.allclose(cos_scores_pytorch, cos_scores_sklearn, atol=1e-4):
-            logger.warning("Similarity score discrepancy between methods")
-        
-        # Get top results
-        top_results = torch.topk(cos_scores_pytorch, k=min(k * 2, len(df)))
-        
-        # Apply diversity filter if enabled
-        if diversity:
-            indices = []
-            current_scores = []
-            for idx, score in zip(top_results.indices, top_results.values):
-                if len(indices) >= k:
-                    break
-                if score < score_threshold:
-                    continue
-                    
-                # Check similarity with already selected items
-                if indices:
-                    max_sim = max(
-                        util.pytorch_cos_sim(
-                            embeddings[idx].reshape(1, -1),
-                            embeddings[i].reshape(1, -1)
-                        ).item()
-                        for i in indices
-                    )
-                    if max_sim > 0.7:  # Skip too similar items
-                        continue
-                        
-                indices.append(idx)
-                current_scores.append(score)
-        else:
-            indices = top_results.indices[:k].tolist()
-            current_scores = top_results.values[:k].tolist()
-        
-        # Prepare enhanced results
-        results = []
-        for idx, score in zip(indices, current_scores):
-            row = df.iloc[idx]
-            results.append({
-                'assessment_id': str(row['assessment_id']),
-                'assessment_name': row['assessment_name'],
-                'description': row['description'],
-                'skills': row['skills_measured'],
-                'job_roles': row['job_roles'],
-                'duration': row['duration_minutes'],
-                'url': f"https://platform.shl.com/assessment/{row['assessment_id']}",
-                'score': float(score),
-                'score_percentage': f"{float(score) * 100:.1f}%",
-                'metadata': {
-                    'embedding_version': MODEL_NAME,
-                    'processing_time': f"{time.time() - start_time:.3f}s"
-                }
-            })
-        
-        logger.info(f"Generated {len(results)} recommendations for query: '{user_query[:50]}...'")
-        return results
-        
-    except Exception as e:
-        logger.error(f"Recommendation failed for query '{user_query[:50]}...': {str(e)}", exc_info=True)
-        raise RuntimeError(f"Recommendation error: {str(e)}")
+        raise RuntimeError("Failed to generate embeddings")
 
 # ------------------------------
 # Main Execution (for testing)
@@ -325,8 +260,9 @@ if __name__ == "__main__":
     # Test the recommendation system
     print("Testing recommendation system...")
     try:
+        test_df = load_and_validate_data()
         test_query = "sales manager with communication and leadership skills"
-        recommendations = get_top_k(test_query)
+        recommendations = get_top_k(test_query, test_df)
         print(f"Recommendations for '{test_query}':")
         print(json.dumps(recommendations, indent=2))
     except Exception as e:
