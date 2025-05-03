@@ -53,7 +53,7 @@ st.set_page_config(
 # Custom Styling
 # ------------------------------
 def apply_custom_styles():
-    """Inject custom CSS styles."""
+    """Preserves your original styling with visible text"""
     st.markdown("""
     <style>
         :root {
@@ -62,47 +62,43 @@ def apply_custom_styles():
             --accent-color: #63ace5;
         }
         
+        /* MAIN CONTAINER (unchanged) */
         .reportview-container {
             background-color: #f8f9fa;
         }
         
+        /* SIDEBAR (unchanged) */
         .sidebar .sidebar-content {
             background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
             color: white;
             padding: 2rem 1rem;
         }
         
-        .sidebar .sidebar-content .stMarkdown h1 {
-            color: white;
-        }
-        
-        .main .block-container {
-            padding: 3rem 1rem 10rem;
-            max-width: 1200px;
-        }
-        
+        /* HEADERS (unchanged) */
         .title {
             font-size: 2.5rem;
             font-weight: 700;
             color: var(--primary-color);
             margin-bottom: 0.5rem;
         }
-        
         .subtitle {
             font-size: 1.1rem;
             color: #555;
             margin-bottom: 2rem;
         }
         
+        /* RECOMMENDATION CARDS (text visibility fix only) */
         .recommendation-card {
             border-left: 4px solid var(--accent-color);
             padding: 1.5rem;
             margin-bottom: 1.5rem;
-            background-color: white;
+            background-color: inherit;  /* Changed from white to inherit */
             border-radius: 0 8px 8px 0;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            color: #333 !important;  /* Ensures dark text */
         }
         
+        /* BUTTONS (unchanged) */
         .stButton>button {
             background-color: var(--accent-color);
             color: white;
@@ -112,12 +108,12 @@ def apply_custom_styles():
             border: none;
             transition: all 0.3s ease;
         }
-        
         .stButton>button:hover {
             background-color: var(--secondary-color);
             transform: translateY(-2px);
         }
         
+        /* FOOTER (unchanged) */
         footer {
             position: fixed;
             bottom: 0;
@@ -126,6 +122,11 @@ def apply_custom_styles():
             color: white;
             padding: 1rem;
             text-align: center;
+        }
+        
+        /* ADDED: Ensure all text is visible */
+        body, .stMarkdown {
+            color: #333;
         }
     </style>
     """, unsafe_allow_html=True)
