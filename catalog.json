@@ -1,0 +1,18 @@
+[
+    {
+        "name": "Java Developer Assessment",
+        "url": "https://www.shl.com/solutions/products/java-developer-assessment/",
+        "remote_testing": "Yes",
+        "adaptive_irt": "No",
+        "duration": "40 minutes",
+        "test_type": "Coding"
+    },
+    {
+        "name": "Sales Aptitude Test",
+        "url": "https://www.shl.com/solutions/products/sales-assessment/",
+        "remote_testing": "Yes",
+        "adaptive_irt": "Yes",
+        "duration": "30 minutes",
+        "test_type": "Behavioral"
+    }
+]
