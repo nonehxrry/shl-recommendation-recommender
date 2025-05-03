@@ -53,22 +53,11 @@ st.set_page_config(
 # Custom Styling
 # ------------------------------
 def apply_custom_styles():
-    """Fix text visibility without any other changes"""
+    """Only fixes text visibility without any other changes"""
     st.markdown("""
     <style>
-        /* Force all text to be visible at all times */
-        * {
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-        }
-        
-        /* Ensure backgrounds stay white for contrast */
-        .recommendation-card,
-        .stTextArea,
-        .stCheckbox,
-        .stMarkdown {
-            background-color: white !important;
-        }
+        /* This single line fixes text visibility */
+        body { color: black !important; }
     </style>
     """, unsafe_allow_html=True)
 # ------------------------------
