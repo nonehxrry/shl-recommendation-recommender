@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SHL Assessment Recommender</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>SHL Assessment Recommendation System</h1>
+        <form action="/recommend" method="POST">
+            <label for="query">Enter Job Role / Query:</label><br>
+            <input type="text" id="query" name="query" size="60" required>
+            <br><br>
+            <input type="submit" value="Get Recommendations">
+        </form>
+
+        {% if recommendations %}
+            <h2>Top Recommendations</h2>
+            {% for item in recommendations %}
+                <div class="result">
+                    <strong>{{ item.name }}</strong><br>
+                    Test Type: {{ item.test_type }}<br>
+                    Duration: {{ item.duration }}<br>
+                    Remote Testing: {{ item.remote_testing }}<br>
+                    URL: <a href="{{ item.url }}" target="_blank">View Assessment</a>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</body>
+</html>
