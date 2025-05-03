@@ -26,7 +26,7 @@ except ImportError as e:
 # ------------------------------
 # Constants & Configuration
 # ------------------------------
-DEFAULT_CATALOG_PATH = os.path.join(os.path.dirname(__file__), "data", "catalogue.csv")
+DEFAULT_CATALOG_PATH = "data/catalog.csv"
 MAX_FILE_SIZE_MB = 5
 ALLOWED_FILE_TYPES = ["csv"]
 DEFAULT_RECOMMENDATIONS = 5
@@ -277,7 +277,7 @@ def main():
     
     # Load data
     try:
-        df = load_catalog(catalog_path)
+        df = load_catalog("data/catalog.csv")
     except Exception as e:
         st.error(f"Data loading error: {str(e)}")
         st.stop()
