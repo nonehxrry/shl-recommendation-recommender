@@ -1,14 +1,13 @@
-# recommend.py
-
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 import torch
+import streamlit as st
 
 # Load the product catalogue
-df = pd.read_csv('data/shl_catalog.csv')
+df = pd.read_csv('data/catalogue.csv')
 
 # Ensure required columns are present
-required_cols = ['assessment_name', 'description', 'duration', 'url']
+required_cols = ['assessment_name', 'description', 'skills_measured', 'job_roles', 'duration_minutes', 'assessment_id']
 if not all(col in df.columns for col in required_cols):
     raise ValueError("CSV missing required columns")
 
@@ -16,7 +15,7 @@ if not all(col in df.columns for col in required_cols):
 df.fillna('', inplace=True)
 
 # Combine relevant columns to form a searchable corpus
-df['text_blob'] = df['assessment_name'] + ". " + df['description']
+df['text_blob'] = df['assessment_name'] + ". " + df['description'] + ". " + df['skills_measured'] + ". " + df['job_roles']
 
 # Load pre-trained transformer model
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -46,8 +45,8 @@ def get_top_k(user_query, k=5):
         results.append({
             'assessment_name': df.iloc[idx]['assessment_name'],
             'description': df.iloc[idx]['description'],
-            'duration': df.iloc[idx]['duration'],
-            'url': df.iloc[idx]['url']
+            'duration': df.iloc[idx]['duration_minutes'],
+            'url': f"https://example.com/assessment/{df.iloc[idx]['assessment_id']}"  # Adjust URL structure accordingly
         })
 
     return results
