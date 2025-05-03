@@ -25,16 +25,11 @@ def configure_page():
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
+
 # Standard library imports
 import os
-# Add this near the top of app.py
-os.makedirs("data", exist_ok=True)
-import sys
 import traceback
 from datetime import datetime
-# Replace the try/except block with:
-from recommend import get_top_k
-from typing import List, Dict, Optional
 
 # Third-party imports
 import pandas as pd
@@ -46,6 +41,7 @@ try:
     from .recommend import get_top_k
 except ImportError as e:
     from recommend import get_top_k
+
 
 # ------------------------------
 # Constants & Configuration
