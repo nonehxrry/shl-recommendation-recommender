@@ -16,6 +16,7 @@ from typing import Optional, List, Dict
 import pandas as pd
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from recommend import initialize_model
 
 # Local imports
 try:
@@ -278,6 +279,9 @@ def main():
     # Apply styles and setup
     apply_custom_styles()
     
+    # Initialize model once at startup (using cache_resource)
+    model = initialize_model()
+    
     # Header Section
     st.markdown('<div class="title">🔍 SHL Assessment Recommendation Engine</div>', 
                 unsafe_allow_html=True)
@@ -332,13 +336,19 @@ def main():
         else:
             try:
                 with st.spinner("🔍 Analyzing job description and finding best matches..."):
-                    recommendations = get_top_k(query, df, k=num_recommendations)
+                    # Pass the pre-loaded model to get_top_k
+                    recommendations = get_top_k(
+                        query=query,
+                        df=df,
+                        k=num_recommendations,
+                        model=model  # Pass the initialized model
+                    )
                 
                 display_recommendations(recommendations, query)
                     
             except Exception as e:
-                st.error("""
-                ❌ An error occurred during processing.
+                st.error(f"""
+                ❌ An error occurred during processing: {str(e)}
                 Please try again or contact support if the problem persists.
                 """)
                 if show_technical:
