@@ -53,11 +53,80 @@ st.set_page_config(
 # Custom Styling
 # ------------------------------
 def apply_custom_styles():
-    """Only fixes text visibility without any other changes"""
+    """Inject custom CSS styles."""
     st.markdown("""
     <style>
-        /* This single line fixes text visibility */
-        body { color: black !important; }
+        :root {
+            --primary-color: #1f4e79;
+            --secondary-color: #4b86b4;
+            --accent-color: #63ace5;
+        }
+        
+        .reportview-container {
+            background-color: #f8f9fa;
+        }
+        
+        .sidebar .sidebar-content {
+            background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 1rem;
+        }
+        
+        .sidebar .sidebar-content .stMarkdown h1 {
+            color: white;
+        }
+        
+        .main .block-container {
+            padding: 3rem 1rem 10rem;
+            max-width: 1200px;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 2rem;
+        }
+        
+        .recommendation-card {
+            border-left: 4px solid var(--accent-color);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background-color: white;
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stButton>button {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .stButton>button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
     </style>
     """, unsafe_allow_html=True)
 # ------------------------------
