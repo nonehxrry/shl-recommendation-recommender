@@ -11,6 +11,8 @@ import os
 import sys
 import traceback
 from datetime import datetime
+# Replace the try/except block with:
+from recommend import get_top_k
 from typing import List, Dict, Optional
 
 # Third-party imports
