@@ -203,7 +203,9 @@ def get_top_k(
         # Prepare results
         recommendations = []
         for score, idx in zip(top_results.values, top_results.indices):
-            row = df.iloc[idx]
+            # Convert tensor index to Python integer
+            idx_int = idx.item()  # This converts torch.Tensor to int
+            row = df.iloc[idx_int]  # Use the integer index
             recommendations.append({
                 'assessment_name': row['assessment_name'],
                 'description': row['description'],
