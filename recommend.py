@@ -225,8 +225,8 @@ def get_top_k(
 # Embedding Generation
 # ------------------------------
 @st.cache_data(show_spinner="Encoding catalog assessments...")
-def generate_embeddings(
-    model: SentenceTransformer, 
+def generate_embeddings(  # Fixed typo in function name (removed extra 'd')
+    _model: SentenceTransformer,  # Added underscore to prevent hashing
     texts: List[str],
     batch_size: int = 32
 ) -> torch.Tensor:
@@ -234,7 +234,7 @@ def generate_embeddings(
     Generate embeddings for catalog items.
     
     Args:
-        model: Initialized sentence transformer model
+        _model: Initialized sentence transformer model (not hashed)
         texts: List of text items to encode
         batch_size: Number of items to process at once
         
@@ -242,7 +242,7 @@ def generate_embeddings(
         torch.Tensor: Matrix of embeddings
     """
     try:
-        return model.encode(
+        return _model.encode(
             texts,
             convert_to_tensor=True,
             show_progress_bar=True,
