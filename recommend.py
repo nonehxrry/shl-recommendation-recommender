@@ -20,6 +20,9 @@ from sentence_transformers import SentenceTransformer, util
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
+MIN_SCORE_THRESHOLD = 0.2  # Minimum similarity score to include
+MAX_DURATION = 240  # Maximum allowed duration in minutes
+
 # ------------------------------
 # Configuration
 # ------------------------------
@@ -156,20 +159,12 @@ def get_top_k(
     df: pd.DataFrame,
     k: int = DEFAULT_K,
     model: Optional[SentenceTransformer] = None,
-    embeddings: Optional[torch.Tensor] = None
+    embeddings: Optional[torch.Tensor] = None,
+    max_duration: Optional[int] = None,
+    min_score: Optional[float] = None
 ) -> List[Dict]:
     """
-    Get top-k recommendations for a user query.
-    
-    Args:
-        query: Input job description text
-        df: Catalog dataframe
-        k: Number of recommendations to return
-        model: Optional pre-initialized model
-        embeddings: Optional pre-computed embeddings
-        
-    Returns:
-        List of recommendation dictionaries
+    Enhanced with duration filtering and score thresholds
     """
     try:
         # Validate inputs
@@ -178,6 +173,12 @@ def get_top_k(
             
         if k <= 0:
             raise ValueError("Number of recommendations must be positive")
+
+        # Apply duration filter if specified
+        if max_duration is not None:
+            df = df[df['duration_minutes'] <= max_duration]
+            if len(df) == 0:
+                raise ValueError(f"No assessments found within {max_duration} minutes")
 
         # Initialize model if not provided
         if model is None:
@@ -197,15 +198,20 @@ def get_top_k(
         # Compute cosine similarities
         cos_scores = util.pytorch_cos_sim(query_embedding, embeddings)[0]
         
-        # Get top k results
-        top_results = torch.topk(cos_scores, k=k)
+        # Apply score threshold if specified
+        if min_score is None:
+            min_score = MIN_SCORE_THRESHOLD
+            
+        # Get top k results above threshold
+        top_results = torch.topk(cos_scores, k=min(k, len(cos_scores)))
         
         # Prepare results
         recommendations = []
         for score, idx in zip(top_results.values, top_results.indices):
-            # Convert tensor index to Python integer
-            idx_int = idx.item()  # This converts torch.Tensor to int
-            row = df.iloc[idx_int]  # Use the integer index
+            if score < min_score:
+                continue
+            idx_int = idx.item()
+            row = df.iloc[idx_int]
             recommendations.append({
                 'assessment_name': row['assessment_name'],
                 'description': row['description'],
@@ -214,7 +220,9 @@ def get_top_k(
                 'duration': row['duration_minutes'],
                 'assessment_id': row['assessment_id'],
                 'score': float(score),
-                'url': f"https://platform.shl.com/assessment/{row['assessment_id']}"
+                'url': f"https://platform.shl.com/assessment/{row['assessment_id']}",
+                'adaptive_support': 'Yes' if 'Adaptive' in row.get('test_type', '') else 'No',
+                'remote_support': 'Yes'  # Default value, update based on your data
             })
 
         return recommendations
@@ -222,6 +230,38 @@ def get_top_k(
     except Exception as e:
         logger.error(f"Recommendation failed: {str(e)}", exc_info=True)
         raise RuntimeError(f"Failed to generate recommendations: {str(e)}")
+
+
+def format_for_api(recommendations: List[Dict]) -> List[Dict]:
+    """Convert to API-required JSON format"""
+    return [{
+        "url": r['url'],
+        "adaptive_support": r['adaptive_support'],
+        "description": r['description'],
+        "duration": r['duration'],
+        "remote_support": r['remote_support'],
+        "test_type": r['skills_measured'].split(', ')  # Example conversion
+    } for r in recommendations]
+
+# New evaluation metrics functions
+def calculate_recall(recommendations, relevant_items, k=3):
+    """Calculate Recall@K"""
+    top_k = recommendations[:k]
+    relevant_in_top_k = len(set(top_k) & set(relevant_items))
+    return relevant_in_top_k / len(relevant_items) if relevant_items else 0
+
+def calculate_map(recommendations, relevant_items, k=3):
+    """Calculate MAP@K"""
+    average_precision = 0
+    relevant_count = 0
+    
+    for i in range(1, k+1):
+        if recommendations[i-1] in relevant_items:
+            relevant_count += 1
+            precision_at_i = relevant_count / i
+            average_precision += precision_at_i
+            
+    return average_precision / min(k, len(relevant_items)) if relevant_items else 0
 
 # ------------------------------
 # Embedding Generation
