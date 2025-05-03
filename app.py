@@ -53,24 +53,21 @@ st.set_page_config(
 # Custom Styling
 # ------------------------------
 def apply_custom_styles():
-    """Only the essential fixes for text visibility"""
+    """Fix text visibility without any other changes"""
     st.markdown("""
     <style>
-        /* ONLY THE ABSOLUTELY NECESSARY FIXES */
-        /* Make sure text is visible in recommendation cards */
-        .recommendation-card {
-            background-color: white;
-            color: black;
+        /* Force all text to be visible at all times */
+        * {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
         }
         
-        /* Ensure text areas have visible text */
-        .stTextArea textarea {
-            color: black;
-        }
-        
-        /* Make sure form labels are visible */
-        .stTextArea label, .stSlider label, .stCheckbox label {
-            color: black;
+        /* Ensure backgrounds stay white for contrast */
+        .recommendation-card,
+        .stTextArea,
+        .stCheckbox,
+        .stMarkdown {
+            background-color: white !important;
         }
     </style>
     """, unsafe_allow_html=True)
