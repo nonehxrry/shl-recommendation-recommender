@@ -1,20 +1,18 @@
-# requirements.txt
-
-# Backend - Flask
-Flask==2.3.3
-
-# Frontend - Streamlit
+# Core Web and API
+Flask==2.3.2
 streamlit==1.33.0
 
-# Core ML/NLP
-scikit-learn==1.3.0
-pandas==2.2.1
+# NLP and Transformers
+sentence-transformers==2.2.2
+torch==2.2.2
+transformers==4.40.0
+
+# Data Processing
+pandas==2.2.2
 numpy==1.26.4
+
+# Evaluation Metrics
+scikit-learn==1.4.2
 
 # Utility
 requests==2.31.0
-
-# Optional (for deployment or extended functionality)
-flask-cors==4.0.0
-
-# Note: Ensure Python version >= 3.9
