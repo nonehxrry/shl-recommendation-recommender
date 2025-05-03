@@ -1,0 +1,14 @@
+[
+    {
+        "query": "I need an assessment for a software engineer with Python and SQL skills",
+        "relevant": ["Python Developer Assessment", "Software Engineer Assessment"]
+    },
+    {
+        "query": "Looking for a sales aptitude test",
+        "relevant": ["Sales Assessment", "Retail Sales Test"]
+    },
+    {
+        "query": "Need an assessment for front-end developers with JavaScript experience",
+        "relevant": ["JavaScript Developer Assessment", "Front-End Developer Assessment"]
+    }
+]
