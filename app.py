@@ -3,7 +3,9 @@
 SHL Assessment Recommendation Engine
 Streamlit Web Application
 """
-
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
 # Standard library imports
 import os
 import sys
