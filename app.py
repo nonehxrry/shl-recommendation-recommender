@@ -29,7 +29,8 @@ except ImportError as e:
 # ------------------------------
 # Constants & Configuration
 # ------------------------------
-DEFAULT_CATALOG_PATH = "data/catalogue.csv"
+import os
+DEFAULT_CATALOG_PATH = os.path.join(os.path.dirname(__file__), "data", "catalogue.csv")
 MAX_FILE_SIZE_MB = 5
 ALLOWED_FILE_TYPES = ["csv"]
 DEFAULT_RECOMMENDATIONS = 5
