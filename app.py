@@ -11,7 +11,6 @@ import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict
-import requests  # NEW IMPORT
 
 # Third-party imports
 import pandas as pd
@@ -29,15 +28,14 @@ except ImportError as e:
 # Constants & Configuration
 # ------------------------------
 DATA_DIR = "data"
-DEFAULT_CATALOG_PATH = os.path.join(DATA_DIR, "catalog.csv")
+DEFAULT_CATALOG_PATH = os.path.join(DATA_DIR, "catalog.csv")  # Changed from catalogue.csv to catalog.csv
 MAX_FILE_SIZE_MB = 5
 ALLOWED_FILE_TYPES = ["csv"]
 DEFAULT_RECOMMENDATIONS = 5
 MAX_RECOMMENDATIONS = 20
-API_BASE_URL = "http://localhost:8000"  # NEW CONSTANT
 
 # ------------------------------
-# Initial Configuration (EXACTLY THE SAME)
+# Initial Configuration (MUST BE FIRST STREAMLIT COMMAND)
 # ------------------------------
 st.set_page_config(
     page_title="SHL Assessment Recommendation Engine",
@@ -52,105 +50,320 @@ st.set_page_config(
 )
 
 # ------------------------------
-# Custom Styling (EXACTLY THE SAME)
+# Custom Styling
 # ------------------------------
 def apply_custom_styles():
     """Preserves your original styling with visible text"""
     st.markdown("""
     <style>
-        /* [Previous CSS remains exactly the same] */
+        :root {
+            --primary-color: #1f4e79;
+            --secondary-color: #4b86b4;
+            --accent-color: #63ace5;
+        }
+        
+        /* MAIN CONTAINER (unchanged) */
+        .reportview-container {
+            background-color: #f8f9fa;
+        }
+        
+        /* SIDEBAR (unchanged) */
+        .sidebar .sidebar-content {
+            background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 1rem;
+        }
+        
+        /* HEADERS (unchanged) */
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            font-size: 1.1rem;
+            color: #555;
+            margin-bottom: 2rem;
+        }
+        
+        /* RECOMMENDATION CARDS (text visibility fix only) */
+        .recommendation-card {
+            border-left: 4px solid var(--accent-color);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background-color: inherit;  /* Changed from white to inherit */
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            color: #333 !important;  /* Ensures dark text */
+        }
+        
+        /* BUTTONS (unchanged) */
+        .stButton>button {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        .stButton>button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        /* FOOTER (unchanged) */
+        footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        /* ADDED: Ensure all text is visible */
+        body, .stMarkdown {
+            color: #333;
+        }
     </style>
     """, unsafe_allow_html=True)
-
 # ------------------------------
-# Data Handling (EXACTLY THE SAME)
+# Data Handling
 # ------------------------------
 @st.cache_data(show_spinner="Loading catalog data...")
 def load_catalog(file_path: str = DEFAULT_CATALOG_PATH) -> pd.DataFrame:
-    """[Previous implementation remains identical]"""
-    # [Keep all existing code exactly the same]
+    """
+    Load and validate the product catalog with fallback to sample data.
+    """
+    try:
+        # Ensure data directory exists
+        os.makedirs(DATA_DIR, exist_ok=True)
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            st.warning(f"Catalog not found at {file_path} - using sample data. Please upload your catalog.")
+            
+            # Create sample data
+            sample_data = {
+                'assessment_name': ['Communication Skills', 'Leadership Assessment'],
+                'description': ['Measures verbal and written communication', 'Evaluates leadership potential'],
+                'skills_measured': ['Verbal communication, Writing', 'Decision making, Team management'],
+                'job_roles': ['All roles', 'Managerial roles'],
+                'duration_minutes': [30, 45],
+                'assessment_id': [101, 102]
+            }
+            df = pd.DataFrame(sample_data)
+            
+            # Try to save sample data for future use
+            try:
+                df.to_csv(file_path, index=False)
+                st.info(f"Created sample catalog at {file_path}")
+            except Exception as save_error:
+                st.warning(f"Couldn't save sample catalog: {save_error}")
+            
+            return df
+            
+        # Load existing catalog
+        df = pd.read_csv(file_path)
+        
+        # Validate required columns
+        required_cols = [
+            'assessment_name', 'description', 'skills_measured',
+            'job_roles', 'duration_minutes', 'assessment_id'
+        ]
+        
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
+            
+        # Clean data
+        df.fillna('', inplace=True)
+        df['text_blob'] = (
+            df['assessment_name'] + ". " + 
+            df['description'] + ". " + 
+            df['skills_measured'] + ". " + 
+            df['job_roles']
+        )
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"❌ Failed to load catalog: {str(e)}")
+        st.error(f"Please ensure you have a valid 'catalog.csv' file in the 'data' directory.")
+        st.error(f"Current working directory: {os.getcwd()}")
+        st.error(f"Looking for catalog at: {os.path.abspath(file_path)}")
+        st.stop()
 
 # ------------------------------
-# File Upload Handling (EXACTLY THE SAME)
+# File Upload Handling
 # ------------------------------
 def handle_file_upload() -> Optional[str]:
-    """[Previous implementation remains identical]"""
-    # [Keep all existing code exactly the same]
+    """
+    Handle catalog file upload from user.
+    Returns path to uploaded file if successful, None otherwise.
+    """
+    st.sidebar.markdown("## 📁 Upload Custom Catalog")
+    
+    with st.sidebar:
+        uploaded_file = st.file_uploader(
+            "Upload CSV (max 5MB)",
+            type=ALLOWED_FILE_TYPES,
+            accept_multiple_files=False,
+            help="Upload a custom SHL catalog CSV file"
+        )
+        
+        if uploaded_file is not None:
+            # Validate file size
+            if uploaded_file.size > MAX_FILE_SIZE_MB * 1024 * 1024:
+                st.error(f"File too large. Max size: {MAX_FILE_SIZE_MB}MB")
+                return None
+                
+            # Ensure data directory exists
+            os.makedirs(DATA_DIR, exist_ok=True)
+                
+            # Save to data directory
+            upload_path = os.path.join(DATA_DIR, "uploaded_catalog.csv")
+            try:
+                with open(upload_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                st.success("File uploaded successfully!")
+                return upload_path
+            except Exception as e:
+                st.error(f"Failed to save uploaded file: {e}")
+                return None
+                
+    return None
 
 # ------------------------------
-# Recommendation Display (EXACTLY THE SAME)
+# Recommendation Display
 # ------------------------------
 def display_recommendations(recommendations: List[Dict], query: str):
-    """[Previous implementation remains identical]"""
-    # [Keep all existing code exactly the same]
+    """
+    Display recommendations in an attractive format.
+    """
+    if not recommendations:
+        st.warning("No recommendations found. Try broadening your search criteria.")
+        return
+        
+    st.success(f"✅ Found {len(recommendations)} recommendations for: '{query}'")
+    st.markdown("---")
+    
+    for i, rec in enumerate(recommendations, 1):
+        with st.container():
+            st.markdown(f"""
+            <div class="recommendation-card">
+                <h3>#{i}: {rec['assessment_name']}</h3>
+                <p><strong>🔍 Match Score:</strong> {rec.get('score', 0):.2f}/1.00</p>
+                <p><strong>📝 Description:</strong> {rec['description']}</p>
+                <p><strong>⏱ Duration:</strong> {rec['duration']} minutes</p>
+                <p><strong>🔗</strong> <a href="{rec.get('url', '#')}" target="_blank">View Assessment Details</a></p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Add expandable technical details
+            with st.expander("ℹ️ Technical Details"):
+                st.json({
+                    "assessment_id": rec.get('assessment_id', ''),
+                    "embedding_model": "all-MiniLM-L6-v2",
+                    "similarity_metric": "cosine_similarity"
+                })
 
 # ------------------------------
-# NEW: API Health Check Function
-# ------------------------------
-def check_api_health():
-    """NEW: Checks API status without affecting main flow"""
-    try:
-        with st.spinner("Checking API..."):
-            response = requests.get(f"{API_BASE_URL}/health", timeout=3)
-            if response.status_code == 200:
-                st.sidebar.success("API is healthy ✅")
-            else:
-                st.sidebar.error(f"API Error: {response.status_code}")
-    except Exception as e:
-        st.sidebar.error("API not reachable")
-
-# ------------------------------
-# Main App Functionality (CAREFULLY MODIFIED)
+# Main App Functionality
 # ------------------------------
 def main():
-    """Main application function with new features added without changing existing UI"""
-    # Apply styles and setup (unchanged)
+    """Main application function."""
+    # Apply styles and setup
     apply_custom_styles()
     
-    # Initialize model once at startup (unchanged)
+    # Initialize model once at startup (using cache_resource)
     model = initialize_model()
     
-    # [Keep ALL existing header, sidebar, and file upload code exactly as is...]
+    # Header Section
+    st.markdown('<div class="title">🔍 SHL Assessment Recommendation Engine</div>', 
+                unsafe_allow_html=True)
+    st.markdown("""
+    <div class="subtitle">
+        AI-powered tool to match job descriptions with the most relevant SHL assessments.
+        <br>Enter a job description below to get started.
+    </div>
+    """, unsafe_allow_html=True)
     
-    # ====== NEW: Add API Health Check Button to Sidebar ======
-    if st.sidebar.button("🔌 Check API Status"):
-        check_api_health()
+    # Sidebar Configuration
+    st.sidebar.title("⚙️ Configuration")
     
-    # [Keep ALL existing query input section exactly as is...]
+    # File upload handling - returns None if no file uploaded
+    custom_catalog_path = handle_file_upload()
     
-    # ====== MODIFIED: Enhanced Recommendation Generation ======
+    # Load data - uses uploaded file if available, otherwise default
+    catalog_path = custom_catalog_path if custom_catalog_path else DEFAULT_CATALOG_PATH
+    df = load_catalog(catalog_path)
+    
+    # Query Input Section
+    st.header("📝 Enter Job Description")
+    query = st.text_area(
+        "Describe the role, skills, or candidate profile:",
+        height=200,
+        placeholder="Example: Looking for a sales manager with strong communication skills, analytical ability, and team leadership experience...",
+        help="Be as specific as possible for better recommendations"
+    )
+    
+    # Recommendation Settings
+    with st.expander("⚙️ Advanced Settings"):
+        col1, col2 = st.columns(2)
+        with col1:
+            num_recommendations = st.slider(
+                "Number of recommendations",
+                1,
+                MAX_RECOMMENDATIONS,
+                DEFAULT_RECOMMENDATIONS,
+                help="Adjust how many results to display"
+            )
+        with col2:
+            show_technical = st.checkbox(
+                "Show technical details",
+                False,
+                help="Display embedding and scoring details"
+            )
+    
+    # Generate Recommendations
     if st.button("🚀 Generate Recommendations", type="primary"):
         if not query.strip():
             st.warning("Please enter a job description to continue")
         else:
             try:
                 with st.spinner("🔍 Analyzing job description and finding best matches..."):
+                    # Pass the pre-loaded model to get_top_k
                     recommendations = get_top_k(
                         query=query,
                         df=df,
                         k=num_recommendations,
-                        model=model
+                        model=model  # Pass the initialized model
                     )
                 
-                # Existing display function called exactly as before
                 display_recommendations(recommendations, query)
                     
             except Exception as e:
-                error_msg = str(e)
-                if "'NoneType' object is not subscriptable" in error_msg:
-                    st.error("❌ Failed to load recommendations. Please check your data.")
-                else:
-                    st.error(f"""
-                    ❌ An error occurred:
-                    {error_msg}
-                    """)
-                
+                st.error(f"""
+                ❌ An error occurred during processing: {str(e)}
+                Please try again or contact support if the problem persists.
+                """)
                 if show_technical:
                     with st.expander("Technical Details"):
                         st.code(traceback.format_exc())
     
-    # [Keep footer exactly the same]
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <footer>
+        © 2025 SHL AI Intern Project | Version 2.1 | Built by Harjit Singh Bhadauriya
+    </footer>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
+    # Ensure data directory exists before starting
     os.makedirs(DATA_DIR, exist_ok=True)
     main()
