@@ -488,7 +488,8 @@ def main():
     st.sidebar.markdown("---")
     st.sidebar.markdown(f"## 🌐 API Endpoint (Conceptual)")
     st.sidebar.markdown(f"The API endpoint for querying this recommendation engine would be:")
-    st.sidebar.code(f"POST {st.experimental_get_query_params().get('host', 'your_app_url')}{API_ENDPOINT}", language="bash")
+    # Replace 'your_app_url' with the actual URL of your deployed Streamlit app
+    st.sidebar.code(f"POST https://your_streamlit_app_url.streamlit.app/recommendations", language="bash")
     st.sidebar.markdown("It would accept a JSON payload with a 'query' field and return a JSON response containing a list of assessment recommendations in the following format:")
     st.sidebar.code(
         """
@@ -518,7 +519,7 @@ def main():
     )
     st.sidebar.markdown("---")
     st.sidebar.markdown("## 💻 GitHub Code")
-    st.sidebar.markdown("[Link to your GitHub repository will be here]") # Replace with your actual GitHub link
+    st.sidebar.markdown(f"[https://github.com/nonehxrry](https://github.com/nonehxrry)") # Updated with your GitHub link
 
     # Footer
     st.markdown("---")
@@ -527,7 +528,6 @@ def main():
         © 2025 SHL AI Intern Project | Version 2.1 | Built by Harjit Singh Bhadauriya
     </footer>
     """, unsafe_allow_html=True)
-
 
 if __name__ == "__main__":
     # Ensure data directory exists before starting
