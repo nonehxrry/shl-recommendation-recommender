@@ -489,7 +489,7 @@ def main():
     st.sidebar.markdown(f"## 🌐 API Endpoint (Conceptual)")
     st.sidebar.markdown(f"The API endpoint for querying this recommendation engine would be:")
     # Replace 'your_app_url' with the actual URL of your deployed Streamlit app
-    st.sidebar.code(f"POST https://your_streamlit_app_url.streamlit.app/recommendations", language="bash")
+    st.sidebar.code(f"POST https://shl-recommendation-recommender-nonehxrry.streamlit.app/recommendations", language="bash")
     st.sidebar.markdown("It would accept a JSON payload with a 'query' field and return a JSON response containing a list of assessment recommendations in the following format:")
     st.sidebar.code(
         """
