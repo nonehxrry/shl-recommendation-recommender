@@ -49,14 +49,15 @@ logger = logging.getLogger(__name__)
 # ------------------------------
 def load_and_validate_data(file_path: str = 'data/catalog.csv') -> pd.DataFrame:
     """
-    Load and validate the product catalog with comprehensive checks.
-    
+    Load and validate the product catalog with comprehensive checks,
+    including the new columns: remote_testing, adaptive_irt, test_type, url.
+
     Args:
         file_path: Path to the catalog CSV file
-        
+
     Returns:
         pandas.DataFrame: Validated and processed catalog data
-        
+
     Raises:
         ValueError: If data validation fails
     """
@@ -64,7 +65,7 @@ def load_and_validate_data(file_path: str = 'data/catalog.csv') -> pd.DataFrame:
         # Check file existence
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Catalog file not found at {file_path}")
-            
+
         # Load data with error handling for malformed files
         try:
             df = pd.read_csv(file_path)
@@ -73,31 +74,41 @@ def load_and_validate_data(file_path: str = 'data/catalog.csv') -> pd.DataFrame:
         except pd.errors.ParserError:
             raise ValueError("Catalog file is malformed")
 
-        # Required columns check
+        # Required columns check (including new ones)
         required_cols = {
             'assessment_name': str,
             'description': str,
             'skills_measured': str,
             'job_roles': str,
             'duration_minutes': (int, float),
-            'assessment_id': (str, int)
+            'assessment_id': (str, int),
+            'remote_testing': str,
+            'adaptive_irt': str,
+            'test_type': str,
+            'url': str
         }
-        
+
         missing_cols = [col for col in required_cols if col not in df.columns]
         if missing_cols:
             raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
-            
+
         # Type validation
         type_errors = []
         for col, expected_type in required_cols.items():
-            if not isinstance(df[col].iloc[0], expected_type):
-                type_errors.append(f"{col} should be {expected_type}")
+            try:
+                # Check type of the first non-null element
+                first_valid = df[col].first_valid_index()
+                if first_valid is not None and not isinstance(df[col].iloc[first_valid], expected_type):
+                    type_errors.append(f"{col} should be of type {expected_type}")
+            except KeyError:
+                pass # Column already checked for existence
+
         if type_errors:
             raise ValueError(f"Type mismatch: {'; '.join(type_errors)}")
 
         # Data cleaning
         df.fillna('', inplace=True)
-        
+
         # Create enhanced searchable text
         df['text_blob'] = (
             "Assessment: " + df['assessment_name'] + ". " +
@@ -105,10 +116,10 @@ def load_and_validate_data(file_path: str = 'data/catalog.csv') -> pd.DataFrame:
             "Skills Measured: " + df['skills_measured'] + ". " +
             "Job Roles: " + df['job_roles']
         )
-        
+
         logger.info(f"Successfully loaded catalog with {len(df)} assessments")
         return df
-        
+
     except Exception as e:
         logger.error(f"Data loading failed: {str(e)}", exc_info=True)
         raise
@@ -120,33 +131,33 @@ def load_and_validate_data(file_path: str = 'data/catalog.csv') -> pd.DataFrame:
 def initialize_model(model_name: str = MODEL_NAME) -> SentenceTransformer:
     """
     Initialize and cache the sentence transformer model with comprehensive error handling.
-    
+
     Args:
         model_name: Name of the model to load
-        
+
     Returns:
         SentenceTransformer: Initialized model
-        
+
     Raises:
         RuntimeError: If model initialization fails
     """
     try:
         # Create cache directory if it doesn't exist
         os.makedirs(CACHE_DIR, exist_ok=True)
-        
+
         start_time = time.time()
         logger.info(f"Loading model: {model_name}")
-        
+
         model = SentenceTransformer(
             model_name,
             cache_folder=CACHE_DIR,
             device='cuda' if torch.cuda.is_available() else 'cpu'
         )
-        
+
         logger.info(f"Model loaded in {time.time() - start_time:.2f}s on "
-                   f"{'GPU' if torch.cuda.is_available() else 'CPU'}")
+                    f"{'GPU' if torch.cuda.is_available() else 'CPU'}")
         return model
-        
+
     except Exception as e:
         logger.error(f"Model initialization failed: {str(e)}", exc_info=True)
         raise RuntimeError("Failed to initialize recommendation model")
@@ -164,13 +175,14 @@ def get_top_k(
     min_score: Optional[float] = None
 ) -> List[Dict]:
     """
-    Enhanced with duration filtering and score thresholds
+    Enhanced with duration filtering and score thresholds, and includes
+    remote_testing, adaptive_irt, test_type, and url in recommendations.
     """
     try:
         # Validate inputs
         if not query or len(query.strip()) < MIN_QUERY_LENGTH:
             raise ValueError(f"Query must be at least {MIN_QUERY_LENGTH} characters")
-            
+
         if k <= 0:
             raise ValueError("Number of recommendations must be positive")
 
@@ -183,7 +195,7 @@ def get_top_k(
         # Initialize model if not provided
         if model is None:
             model = initialize_model()
-            
+
         # Generate embeddings if not provided
         if embeddings is None:
             embeddings = generate_embeddings(model, df['text_blob'].tolist())
@@ -197,14 +209,14 @@ def get_top_k(
 
         # Compute cosine similarities
         cos_scores = util.pytorch_cos_sim(query_embedding, embeddings)[0]
-        
+
         # Apply score threshold if specified
         if min_score is None:
             min_score = MIN_SCORE_THRESHOLD
-            
+
         # Get top k results above threshold
         top_results = torch.topk(cos_scores, k=min(k, len(cos_scores)))
-        
+
         # Prepare results
         recommendations = []
         for score, idx in zip(top_results.values, top_results.indices):
@@ -217,12 +229,13 @@ def get_top_k(
                 'description': row['description'],
                 'skills_measured': row['skills_measured'],
                 'job_roles': row['job_roles'],
-                'duration': row['duration_minutes'],
+                'duration_minutes': row['duration_minutes'],
                 'assessment_id': row['assessment_id'],
                 'score': float(score),
-                'url': f"https://platform.shl.com/assessment/{row['assessment_id']}",
-                'adaptive_support': 'Yes' if 'Adaptive' in row.get('test_type', '') else 'No',
-                'remote_support': 'Yes'  # Default value, update based on your data
+                'url': row['url'],
+                'adaptive_irt': row['adaptive_irt'],
+                'remote_testing': row['remote_testing'],
+                'test_type': row['test_type']
             })
 
         return recommendations
@@ -236,11 +249,11 @@ def format_for_api(recommendations: List[Dict]) -> List[Dict]:
     """Convert to API-required JSON format"""
     return [{
         "url": r['url'],
-        "adaptive_support": r['adaptive_support'],
+        "adaptive_support": r['adaptive_irt'],
         "description": r['description'],
-        "duration": r['duration'],
-        "remote_support": r['remote_support'],
-        "test_type": r['skills_measured'].split(', ')  # Example conversion
+        "duration": r['duration_minutes'],
+        "remote_support": r['remote_testing'],
+        "test_type": r['test_type']
     } for r in recommendations]
 
 # New evaluation metrics functions
@@ -254,13 +267,13 @@ def calculate_map(recommendations, relevant_items, k=3):
     """Calculate MAP@K"""
     average_precision = 0
     relevant_count = 0
-    
+
     for i in range(1, k+1):
         if recommendations[i-1] in relevant_items:
             relevant_count += 1
             precision_at_i = relevant_count / i
             average_precision += precision_at_i
-            
+
     return average_precision / min(k, len(relevant_items)) if relevant_items else 0
 
 # ------------------------------
@@ -274,12 +287,12 @@ def generate_embeddings(  # Fixed typo in function name (removed extra 'd')
 ) -> torch.Tensor:
     """
     Generate embeddings for catalog items.
-    
+
     Args:
         _model: Initialized sentence transformer model (not hashed)
         texts: List of text items to encode
         batch_size: Number of items to process at once
-        
+
     Returns:
         torch.Tensor: Matrix of embeddings
     """
