@@ -16,16 +16,10 @@ from typing import Optional, List, Dict
 import pandas as pd
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
-from recommend import initialize_model
+from recommend import initialize_model, get_top_k
 import requests  # For fetching from URLs
 from bs4 import BeautifulSoup  # For parsing HTML (optional, for better URL handling)
 import spacy  # For keyword/skill extraction (if implemented)
-
-# Local imports
-try:
-    from .recommend import get_top_k
-except ImportError as e:
-    from recommend import get_top_k
 
 # ------------------------------
 # Constants & Configuration
@@ -389,8 +383,7 @@ def main():
     model = initialize_model()
 
     # Header Section
-    st.markdown('<div class="title">🔍 SHL Assessment Recommendation Engine</div>',
-                unsafe_allow_html=True)
+    st.markdown('<div class="title">🔍 SHL Assessment Recommendation Engine</div>', unsafe_allow_html=True)
     st.markdown("""
     <div class="subtitle">
         AI-powered tool to match job descriptions with the most relevant SHL assessment solutions.
@@ -506,7 +499,8 @@ def main():
                 "remote_testing": "Yes/No",
                 "adaptive_irt": "Yes/No",
                 "duration": "XX minutes",
-                "test_type": "Type"
+                "test_type": "Type",
+                "match_score": "0.XX"
             },
             {
                 "assessment_name": "Assessment Name 2",
@@ -514,7 +508,8 @@ def main():
                 "remote_testing": "Yes/No",
                 "adaptive_irt": "Yes/No",
                 "duration": "YY minutes",
-                "test_type": "Type"
+                "test_type": "Type",
+                "match_score": "0.YY"
             },
             ...
         ]
